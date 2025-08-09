@@ -383,7 +383,7 @@ class TemperatureDetectionApp(QMainWindow):
         
         station_layout.addLayout(display_layout)
         
-        # Export button (smaller)
+        # Export buttons (smaller)
         export_layout = QHBoxLayout()
         export_layout.addStretch()
         
@@ -411,6 +411,31 @@ class TemperatureDetectionApp(QMainWindow):
         self.export_btn.clicked.connect(self.export_csv)
         self.export_btn.setEnabled(False)
         export_layout.addWidget(self.export_btn)
+        
+        self.export_pdf_btn = QPushButton("📄 Export Chart PDF")
+        self.export_pdf_btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.export_pdf_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #FF5722;
+                color: white;
+                border: none;
+                padding: 6px 12px;
+                border-radius: 4px;
+                font-weight: bold;
+                font-size: 11px;
+                min-width: 120px;
+            }
+            QPushButton:hover {
+                background-color: #E64A19;
+            }
+            QPushButton:disabled {
+                background-color: #cccccc;
+                color: #666666;
+            }
+        """)
+        self.export_pdf_btn.clicked.connect(self.export_chart_pdf)
+        self.export_pdf_btn.setEnabled(False)
+        export_layout.addWidget(self.export_pdf_btn)
         export_layout.addStretch()
         
         station_layout.addLayout(export_layout)
@@ -541,6 +566,26 @@ class TemperatureDetectionApp(QMainWindow):
                     QMessageBox.information(self, "Success", f"Data exported to {file_path}")
                 except Exception as e:
                     QMessageBox.critical(self, "Error", f"Failed to export data: {str(e)}")
+    
+    def export_chart_pdf(self):
+        """Export the temperature chart to PDF"""
+        if self.station.get_status()['readings_count'] > 0:
+            filename = f"{self.station.name.replace(' ', '_')}_temperature_chart_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            file_path, _ = QFileDialog.getSaveFileName(
+                self, 
+                "Save Temperature Chart", 
+                filename, 
+                "PDF Files (*.pdf)"
+            )
+            
+            if file_path:
+                try:
+                    # Save the chart as PDF using matplotlib's savefig
+                    self.chart.figure.savefig(file_path, format='pdf', bbox_inches='tight', 
+                                            dpi=300, facecolor='white', edgecolor='none')
+                    QMessageBox.information(self, "Success", f"Chart exported to {file_path}")
+                except Exception as e:
+                    QMessageBox.critical(self, "Error", f"Failed to export chart: {str(e)}")
         
     def update_display(self):
         """Update the display with current station data"""
@@ -586,8 +631,9 @@ class TemperatureDetectionApp(QMainWindow):
             self.diff_value.setText("No data")
             self.diff_value.setStyleSheet("color: gray;")
         
-        # Enable/disable export button
+        # Enable/disable export buttons
         self.export_btn.setEnabled(status['readings_count'] > 0)
+        self.export_pdf_btn.setEnabled(status['readings_count'] > 0)
         
         # Update chart
         history = self.station.get_temperature_history()
